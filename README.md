@@ -112,7 +112,7 @@ top to bottom:
    if different. Keep the placeholders, including their angle brackets:
 
    ```text
-   http://raspberrypi.fritz.box:8080/nic/update?username=<username>&password=<pass>&hostname=<domain>&myip=<ipaddr>&myipv6=<ip6addr>&ip6prefix=<ip6lanprefix>
+   http://raspberrypi.fritz.box:8080/update?username=<username>&password=<pass>&hostname=<domain>&ipaddr=<ipaddr>&ip6addr=<ip6addr>&ip6lanprefix=<ip6lanprefix>
    ```
 
 3. **Domainnamen:** enter the domain you set as `zone` under `[hetzner]` in
@@ -208,7 +208,7 @@ in front of the service. With the proxy on the same host, use
 Use this update URL with your proxy's domain:
 
 ```text
-https://updates.example.net/nic/update?username=<username>&password=<pass>&hostname=<domain>&myip=<ipaddr>&myipv6=<ip6addr>&ip6prefix=<ip6lanprefix>
+https://updates.example.net/update?username=<username>&password=<pass>&hostname=<domain>&ipaddr=<ipaddr>&ip6addr=<ip6addr>&ip6lanprefix=<ip6lanprefix>
 ```
 
 For Caddy, use [deploy/Caddyfile](deploy/Caddyfile): replace the example domain
@@ -257,9 +257,9 @@ sudo systemctl start dyndns-hcloud
 
 | Parameter | FRITZ!Box placeholder | Updates |
 | --- | --- | --- |
-| `myip` | `<ipaddr>` | Root domain's A record and clients with IPv4 enabled |
-| `myipv6` | `<ip6addr>` | Root domain's AAAA record |
-| `ip6prefix` | `<ip6lanprefix>` | Client AAAA records |
+| `ipaddr` | `<ipaddr>` | Root domain's A record and clients with IPv4 enabled |
+| `ip6addr` | `<ip6addr>` | Root domain's AAAA record |
+| `ip6lanprefix` | `<ip6lanprefix>` | Client AAAA records |
 
 These parameters may be sent independently. Missing or empty values leave the
 corresponding records unchanged; at least one must be supplied. Nonempty invalid

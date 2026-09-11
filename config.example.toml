@@ -1,6 +1,6 @@
 [server]
 host = "*" # All IPv4 and IPv6 interfaces; use 127.0.0.1 for a same-host reverse proxy.
-port = 8080
+port = 8080 # Use this same port in the FRITZ!Box update URL.
 username = "fritzbox"
 password = "replace-with-a-long-random-url-safe-password"
 

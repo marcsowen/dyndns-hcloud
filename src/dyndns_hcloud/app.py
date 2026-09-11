@@ -19,31 +19,46 @@ def create_app(config: Config, dns=None) -> Flask:
     updater = dns if dns is not None else HetznerDNS(config.hetzner)
     lock = Lock()
 
+    @app.before_request
+    def log_request():
+        # Use a fixed label; paths, query strings and headers can contain secrets.
+        endpoint = "/update" if request.endpoint == "update" else "unmatched route"
+        log.info("HTTP request received for %s", endpoint)
+
+    @app.after_request
+    def log_unmatched_response(response):
+        if request.endpoint != "update":
+            log.info("HTTP response for unmatched route: %s", response.status_code)
+        return response
+
     def reply(body: str, status: int = 200) -> Response:
+        # body is an internal protocol code, never user-provided text.
+        log.info("DynDNS response: HTTP %s, %s", status, body)
         response = Response(body + "\n", status=status, mimetype="text/plain")
         response.headers["Cache-Control"] = "no-store"
         return response
 
-    @app.route("/nic/update", methods=["GET"])
+    @app.route("/update", methods=["GET"])
     def update():
         # Flask otherwise also enables HEAD, which must never mutate DNS.
         if request.method != "GET":
             return reply("badagent", 405)
         if any(len(request.args.getlist(key)) != 1 for key in request.args):
             return reply("notfqdn", 400)
-        auth = request.authorization
-        if auth is not None:
+        # FRITZ!Box substitutes credentials in the configured URL. They take
+        # precedence over an incidental Authorization header, even if invalid.
+        if "username" in request.args or "password" in request.args:
+            username = request.args.get("username", "")
+            password = request.args.get("password", "")
+        elif (auth := request.authorization) is not None:
             username = auth.username if auth.type == "basic" else ""
             password = auth.password if auth.type == "basic" else ""
         else:
-            username = request.args.get("username", "")
-            password = request.args.get("password", "")
+            username = password = ""
         user_ok = hmac.compare_digest((username or "").encode(), config.server.username.encode())
         pass_ok = hmac.compare_digest((password or "").encode(), config.server.password.get_secret_value().encode())
         if not (user_ok and pass_ok):
-            response = reply("badauth", 401)
-            response.headers["WWW-Authenticate"] = 'Basic realm="DynDNS"'
-            return response
+            return reply("badauth", 401)
         # hostname identifies this configured zone; it cannot select arbitrary records.
         hostname = request.args.get("hostname", config.hetzner.zone).lower().rstrip(".")
         allowed = {config.hetzner.zone} | {
@@ -51,9 +66,9 @@ def create_app(config: Config, dns=None) -> Flask:
         }
         if hostname not in allowed:
             return reply("nohost", 400)
-        ipv4 = request.args.get("myip", "").strip()
-        ipv6 = request.args.get("myipv6", "").strip()
-        prefix = request.args.get("ip6prefix", "").strip()
+        ipv4 = request.args.get("ipaddr", "").strip()
+        ipv6 = request.args.get("ip6addr", "").strip()
+        prefix = request.args.get("ip6lanprefix", "").strip()
         if not ipv4 and not ipv6 and not prefix:
             return reply("notfqdn", 400)
         desired = []
