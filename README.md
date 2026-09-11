@@ -6,8 +6,9 @@ at Hetzner. It can also give devices such as a NAS their own IPv6 subdomain.
 
 ## Getting started
 
-These installation instructions target **Ubuntu 26.04 LTS** and **Raspberry Pi OS
-Trixie** (Lite or Desktop). You need a DNS zone in Hetzner Console and a read/write
+These installation instructions target recent versions of **Ubuntu** and
+**Raspberry Pi OS** (Lite or Desktop), with Python 3.11 or newer.
+You need a DNS zone in Hetzner Console and a read/write
 API token for its project. The service must be reachable by your FRITZ!Box. You can
 run it on a Raspberry Pi in your trusted home network using HTTP directly, without
 a reverse proxy. For connections over the internet, use [HTTPS](#https-setup).
@@ -251,24 +252,6 @@ sudo cp deploy/dyndns-hcloud.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl start dyndns-hcloud
 ```
-
-### Supported operating systems
-
-The installation targets are the current stable releases as of September 2026:
-
-| System | Release | Installation |
-| --- | --- | --- |
-| Ubuntu Server or Desktop | [26.04 LTS](https://documentation.ubuntu.com/release-notes/26.04/) | `apt`, service environment in `/opt`, systemd |
-| Raspberry Pi OS Lite or Desktop | [Trixie (Debian 13)](https://www.raspberrypi.com/software/operating-systems/) | `apt`, service environment in `/opt`, systemd |
-
-Both use the commands in the quick start. Python 3.11 or newer is required.
-After a major OS upgrade that changes the Python version, recreate the service
-environment with the new system Python and reinstall the application.
-
-Installation, configuration validation, all 77 tests, and `systemd-analyze verify`
-passed in Ubuntu 26.04.1 (Python 3.14) and Debian Trixie (Python 3.13) containers.
-The Debian check covers the Raspberry Pi OS base; it does not replace testing on
-Raspberry Pi hardware. A real systemd boot has not yet been tested.
 
 ### Callback behavior and troubleshooting
 
