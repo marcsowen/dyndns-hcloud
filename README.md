@@ -1,5 +1,7 @@
 # dyndns-hcloud
 
+English | [Deutsch](README.de.md)
+
 Keep your domain pointing to your home network when your internet address changes.
 This Python service receives updates from a FRITZ!Box and updates your DNS records
 at Hetzner. It can also give devices such as a NAS their own IPv6 subdomain.
