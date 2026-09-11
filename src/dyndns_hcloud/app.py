@@ -25,7 +25,7 @@ def create_app(config: Config, dns=None) -> Flask:
         g.started = monotonic()
         # Use a fixed label; paths, query strings and headers can contain secrets.
         endpoint = "/update" if request.endpoint == "update" else "unmatched route"
-        log.info("HTTP request received for %s", endpoint)
+        log.info("HTTP request received for %s from %r", endpoint, (request.remote_addr or "unknown")[:128])
 
     @app.after_request
     def log_unmatched_response(response):
@@ -61,6 +61,18 @@ def create_app(config: Config, dns=None) -> Flask:
         pass_ok = hmac.compare_digest((password or "").encode(), config.server.password.get_secret_value().encode())
         if not (user_ok and pass_ok):
             return reply("badauth", 401)
+
+        def logged_parameter(name):
+            value = request.args.get(name)
+            if value is None:
+                return "<missing>"
+            return value[:128] + ("...<truncated>" if len(value) > 128 else "")
+
+        # Log only these fields after authentication. repr escapes control
+        # characters, and the length limit keeps malformed inputs bounded.
+        log.info("Received address parameters: ipaddr=%r, ip6addr=%r, ip6lanprefix=%r",
+                 logged_parameter("ipaddr"), logged_parameter("ip6addr"),
+                 logged_parameter("ip6lanprefix"))
         # hostname identifies this configured zone; it cannot select arbitrary records.
         hostname = request.args.get("hostname", config.hetzner.zone).lower().rstrip(".")
         allowed = {config.hetzner.zone} | {

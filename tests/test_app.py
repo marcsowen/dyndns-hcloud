@@ -84,6 +84,53 @@ def test_router_ipv6_only(receiver):
     dns.update.assert_called_once_with([("@", "AAAA", "2001:db8:abcd::1")])
 
 
+@pytest.mark.parametrize("source", ["192.168.178.1", "2001:db8::1"])
+def test_log_source_and_received_addresses(receiver, caplog, source):
+    client, _ = receiver
+    caplog.set_level("INFO", logger="dyndns_hcloud.app")
+    response = client.get("/update", query_string={
+        "username": "router", "password": "secret",
+        "ipaddr": "198.51.100.12", "ip6addr": "2001:0db8:abcd::1",
+        "ip6lanprefix": "2001:db8:1234::/64",
+    }, environ_overrides={"REMOTE_ADDR": source},
+        headers={"X-Forwarded-For": "192.0.2.99"})
+    assert response.status_code == 200
+    assert f"from {source!r}" in caplog.text
+    assert "ipaddr='198.51.100.12'" in caplog.text
+    assert "ip6addr='2001:0db8:abcd::1'" in caplog.text
+    assert "ip6lanprefix='2001:db8:1234::/64'" in caplog.text
+    assert "192.0.2.99" not in caplog.text
+    assert "secret" not in caplog.text
+    assert "username=" not in caplog.text
+
+
+def test_log_empty_and_missing_parameters(receiver, caplog):
+    client, _ = receiver
+    caplog.set_level("INFO", logger="dyndns_hcloud.app")
+    response = client.get("/update", query_string={
+        "username": "router", "password": "secret", "ipaddr": "",
+    })
+    assert response.status_code == 400
+    assert "ipaddr=''" in caplog.text
+    assert "ip6addr='<missing>'" in caplog.text
+    assert "ip6lanprefix='<missing>'" in caplog.text
+
+
+def test_parameter_logs_escape_and_bound_invalid_inputs(receiver, caplog):
+    client, dns = receiver
+    caplog.set_level("INFO", logger="dyndns_hcloud.app")
+    response = client.get("/update", query_string={
+        "username": "router", "password": "secret",
+        "ipaddr": "bad\nforged log", "ip6addr": "x" * 1000,
+    })
+    assert response.status_code == 400
+    assert "bad\\nforged log" in caplog.text
+    assert "bad\nforged log" not in caplog.text
+    assert "x" * 128 + "...<truncated>" in caplog.text
+    assert "x" * 129 not in caplog.text
+    dns.update.assert_not_called()
+
+
 def test_prefix_never_sets_router_ipv6(receiver):
     client, dns = receiver
     response = client.get("/update?ip6lanprefix=2001:db8::/64&ip6addr=", auth=("router", "secret"))

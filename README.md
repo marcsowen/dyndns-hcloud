@@ -261,7 +261,14 @@ sudo systemctl start dyndns-hcloud
 Follow update progress with `sudo journalctl -u dyndns-hcloud -f`. The journal
 shows validation, zone and record lookups, each record creation/change/skip, TTL
 changes, waits for Hetzner action IDs, and elapsed times. The final summary reports
-changed and unchanged record counts. Logs include managed DNS names and target
+changed and unchanged record counts. Each request logs the connecting IPv4/IPv6
+address; authenticated requests also log the received `ipaddr`, `ip6addr`, and
+`ip6lanprefix` values before validation. Empty values appear as `''` and omitted
+parameters as `'<missing>'`. Control characters are escaped and values longer
+than 128 characters are truncated.
+
+Behind a reverse proxy, the logged source is the proxy's address; the service does
+not trust `X-Forwarded-For`. Logs also include managed DNS names and target
 addresses, but not credentials, request URLs, record comments, or API error bodies.
 
 Changes are processed sequentially, with each Hetzner action awaited before the
