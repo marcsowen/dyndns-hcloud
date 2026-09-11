@@ -96,8 +96,7 @@ sudo systemctl status dyndns-hcloud
 
 Run these commands from the repository directory. The service starts immediately
 and automatically at boot, under its own service account. With the default port,
-it is reachable at
-`http://raspberrypi.fritz.box:8080` if that is your Pi's local hostname.
+it is reachable at `http://192.168.178.20:8080` if that is your server's LAN IP.
 After configuration changes, run `sudo systemctl restart dyndns-hcloud`.
 
 ### 5. Configure the FRITZ!Box
@@ -108,11 +107,11 @@ top to bottom:
 1. **DynDNS aktiv:** enable DynDNS. If your FRITZ!OS version shows a provider
    selection, choose a custom provider.
 2. **Update-URL:** paste the following URL as one line. Replace
-   `raspberrypi.fritz.box` with your service host's local hostname or LAN IP address
-   if different. Keep the placeholders, including their angle brackets:
+   `192.168.178.20` with your service host's numeric LAN IPv4 address and use the
+   configured port. Keep the placeholders, including their angle brackets:
 
    ```text
-   http://raspberrypi.fritz.box:8080/update?username=<username>&password=<pass>&hostname=<domain>&ipaddr=<ipaddr>&ip6addr=<ip6addr>&ip6lanprefix=<ip6lanprefix>
+   http://192.168.178.20:8080/update?username=<username>&password=<pass>&hostname=<domain>&ipaddr=<ipaddr>&ip6addr=<ip6addr>&ip6lanprefix=<ip6lanprefix>
    ```
 
 3. **Domainnamen:** enter the domain you set as `zone` under `[hetzner]` in
@@ -124,6 +123,10 @@ top to bottom:
 
 Save the settings. The FRITZ!Box replaces the URL placeholders with the values
 from these fields and its current addresses when sending an update.
+
+Use a numeric LAN address for local deployments: a local hostname such as
+`home.fritz.box` may work on your computer but fail in the FRITZ!Box's DynDNS
+client. Reserve the server's LAN IP in the FRITZ!Box so it stays the same.
 
 HTTP sends the DynDNS credentials unencrypted, so use this setup on a trusted LAN.
 The service's outgoing calls to Hetzner still use HTTPS.
@@ -214,7 +217,7 @@ https://updates.example.net/update?username=<username>&password=<pass>&hostname=
 For Caddy, use [deploy/Caddyfile](deploy/Caddyfile): replace the example domain
 and point that domain's DNS to the service host. If hosting outside your home
 network, a server with stable connectivity avoids depending on the changing home
-address for updates. A local deployment can use its LAN hostname or address.
+address for updates. For direct local HTTP callbacks, use the numeric LAN address.
 
 The callback URL contains credentials. Disable query-string logging at your
 proxy and any upstream proxies. The Caddy example omits access logging, and the
@@ -254,6 +257,17 @@ sudo systemctl start dyndns-hcloud
 ```
 
 ### Callback behavior and troubleshooting
+
+Follow update progress with `sudo journalctl -u dyndns-hcloud -f`. The journal
+shows validation, zone and record lookups, each record creation/change/skip, TTL
+changes, waits for Hetzner action IDs, and elapsed times. The final summary reports
+changed and unchanged record counts. Logs include managed DNS names and target
+addresses, but not credentials, request URLs, record comments, or API error bodies.
+
+Changes are processed sequentially, with each Hetzner action awaited before the
+next change. Several changes can therefore take tens of seconds. The operation
+timings show whether the delay is in an API request or action polling; this waiting
+does not include DNS resolver cache expiry.
 
 | Parameter | FRITZ!Box placeholder | Updates |
 | --- | --- | --- |

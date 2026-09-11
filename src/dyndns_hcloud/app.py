@@ -4,8 +4,9 @@ import hmac
 import logging
 from ipaddress import IPv4Address, IPv6Address
 from threading import Lock
+from time import monotonic
 
-from flask import Flask, Response, request
+from flask import Flask, Response, g, request
 
 from .addressing import client_ipv6, lan_network
 from .config import Config
@@ -21,6 +22,7 @@ def create_app(config: Config, dns=None) -> Flask:
 
     @app.before_request
     def log_request():
+        g.started = monotonic()
         # Use a fixed label; paths, query strings and headers can contain secrets.
         endpoint = "/update" if request.endpoint == "update" else "unmatched route"
         log.info("HTTP request received for %s", endpoint)
@@ -33,7 +35,7 @@ def create_app(config: Config, dns=None) -> Flask:
 
     def reply(body: str, status: int = 200) -> Response:
         # body is an internal protocol code, never user-provided text.
-        log.info("DynDNS response: HTTP %s, %s", status, body)
+        log.info("DynDNS response: HTTP %s, %s (%.2fs)", status, body, monotonic() - g.started)
         response = Response(body + "\n", status=status, mimetype="text/plain")
         response.headers["Cache-Control"] = "no-store"
         return response
@@ -102,9 +104,14 @@ def create_app(config: Config, dns=None) -> Flask:
         except ValueError:
             return reply("notfqdn", 400)
         if not desired:
+            log.info("No record sets enabled for the supplied addresses")
             return reply("nochg")
+        log.info("Authenticated update validated: %d A and %d AAAA record sets",
+                 sum(kind == "A" for _, kind, _ in desired),
+                 sum(kind == "AAAA" for _, kind, _ in desired))
         # One process owns a zone; serialize callbacks and reject overlapping work.
         if not lock.acquire(blocking=False):
+            log.info("Update deferred: another DNS update is still running")
             return reply("911", 503)
         try:
             changed = updater.update(desired)
