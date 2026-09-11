@@ -1,0 +1,38 @@
+[server]
+host = "*" # All IPv4 and IPv6 interfaces; use 127.0.0.1 for a same-host reverse proxy.
+port = 8080
+username = "fritzbox"
+password = "replace-with-a-long-random-url-safe-password"
+
+[hetzner]
+token = "replace-with-hetzner-cloud-project-read-write-token"
+zone = "example.com"
+ttl = 300
+
+[apex] # Root domain (example.com); both options default to true.
+ipv4 = true # Make example.com resolve to the router's IPv4 address from <ipaddr>.
+ipv6 = true # Make example.com resolve to the router's own IPv6 address from <ip6addr>.
+
+# Minimal: nas.example.com gets an IPv6 AAAA record calculated from the LAN
+# prefix and MAC. Defaults: ipv4 = false, subnet_id = 0.
+# Any existing A record stays untouched.
+[[records]]
+name = "nas"
+mac = "00:11:22:33:44:55"
+
+# Advanced: home.server.example.com gets both an IPv6 AAAA record for the client
+# and an IPv4 A record pointing to the router. Configure port forwarding on the
+# router to reach this client via IPv4.
+[[records]]
+name = "home.server"
+mac = "02:11:22:33:44:66"
+ipv4 = true
+
+# Advanced, optional: select a different LAN /64 within a larger prefix.
+# With 2001:db8:1234:ab00::/56, subnet_id = 42 selects 2001:db8:1234:ab2a::/64.
+# Uncomment only if this matches the client's actual LAN. For /64 input,
+# subnet_id must be 0. IPv4 remains disabled by default.
+# [[records]]
+# name = "lab"
+# mac = "00:11:22:33:44:77"
+# subnet_id = 42

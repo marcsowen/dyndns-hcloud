@@ -1,0 +1,23 @@
+[Unit]
+Description=FRITZ!Box DynDNS receiver for Hetzner DNS
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+LoadCredential=config.toml:/etc/dyndns-hcloud/config.toml
+ExecStart=/opt/dyndns-hcloud/venv/bin/python -m dyndns_hcloud --config %d/config.toml
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

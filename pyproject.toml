@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dyndns-hcloud"
+version = "0.1.0"
+description = "FRITZ!Box DynDNS updates for Hetzner Cloud DNS"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["Flask>=3.1,<4", "hcloud>=2.23,<3", "pydantic>=2.10,<3", "waitress>=3.0,<4"]
+
+[project.optional-dependencies]
+test = ["pytest>=8,<10", "requests-mock>=1.12,<2"]
+
+[project.scripts]
+dyndns-hcloud = "dyndns_hcloud.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
